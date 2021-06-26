@@ -9,22 +9,45 @@
       <h2>{{ playlist.title }}</h2>
       <p class="username">Created by {{ playlist.userName }}</p>
       <p class="description">{{ playlist.description }}</p>
+      <button v-if="ownership" @click="handleDelete">Delete Playlist</button>
     </div>
 
     <!-- song list -->
     <div class="song-list">
       <p>song list here</p>
+      <AddSong v-if="ownership" :playlist="playlist" />
     </div>
   </div>
 </template>
 
 <script>
+import AddSong from "@/components/AddSong";
+import useStorage from "@/composables/useStorage";
+import useDocument from "@/composables/useDocument";
 import getDocument from "@/composables/getDocument";
+import getUser from "@/composables/getUser";
+import { computed } from "vue";
+import { useRouter } from "vue-router";
 export default {
   props: ["id"],
+  components: { AddSong },
   setup(props) {
     const { error, document: playlist } = getDocument("playlists", props.id);
-    return { error, playlist };
+    const { user } = getUser();
+    const { deleteDoc } = useDocument("playlists", props.id);
+    const { deleteImage } = useStorage();
+    const router = useRouter();
+    const ownership = computed(() => {
+      return (
+        playlist.value && user.value && user.value.uid == playlist.value.userId
+      );
+    });
+    const handleDelete = async () => {
+      await deleteDoc();
+      await deleteImage(playlist.value.filePath);
+      router.push({ name: "Home" });
+    };
+    return { error, playlist, ownership, handleDelete };
   },
 };
 </script>
